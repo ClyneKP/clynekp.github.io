@@ -3,6 +3,7 @@ var mergedData = new Array();
 var mergedData2 = new Array();
 var allResults = 0
 var totalResults = 0
+var geo = ''
 
 function clearArray(array) {
   while (array.length) {
@@ -11,8 +12,6 @@ function clearArray(array) {
 }
 
 $(function() {
-
-	/*$("html").append('<div class="kf-timeline"><div class="settings"><span class="pause glyphicon glyphicon-record" title="Record" data-title="Pause" ></span><span class="download glyphicon glyphicon-download" title="Download"></span><span class="clear glyphicon glyphicon-trash" title="Clear"></span></div><div id="container" style="display:inline-flex;margin-top:40px;margin-left: auto;margin-right: auto;margin-bottom: auto;"><div id="loader" style="width: 100%; margin: 0 auto; display:none; border: 10px solid #f3f3f3;border-radius: 50%;border-top: 10px solid #3498db;width: 10px;height: 10px;-webkit-animation: spin 2s linear infinite; animation: spin 2s linear infinite;"></div><div style="display:block; font-size: 60%; height:40%; white-space: pre"><span id="captured">  Results:0</span><span id="results">/0</span></div></div></div><body style="height:100%; margin:0"><iframe src="https://www.zillow.com/homes" width=100% height="100%" style="margin:0; border:0"></iframe></body>');*/
 
 	$('.settings .link').bind('click', function() {
 
@@ -44,6 +43,9 @@ $('.settings .clear').bind('click', function() {
 
 		document.getElementById("captured").innerHTML = '  Results:0'
 		document.getElementById("results").innerHTML = '/0'
+
+		var allResults = 0
+		totalResults = Math.min(0,totalResults)
 
 	});
 
@@ -139,8 +141,6 @@ chrome.runtime.onConnect.addListener(async function(port) {
 		port.onMessage.addListener(async function(Message) {
 
 
-			console.log("Downloading")
-
 			if (pause) {
 	        return false;
         	}
@@ -151,7 +151,6 @@ chrome.runtime.onConnect.addListener(async function(port) {
 			r = r.replace("%2C","_")
 			place = r.replace("%20","")
 
-			console.log("Downloading")
 
 			var pageN = 25
 
@@ -194,11 +193,15 @@ chrome.runtime.onConnect.addListener(async function(port) {
 						  }
 
 						  mergedData = mergedData.reduce(reducer, []);
+						if(place!= geo){
+							totalResults = totalResults + data.cat1.searchList.totalResultCount
+						}
 			  			totalResults = Math.max(totalResults,data.cat1.searchList.totalResultCount)
 			  			thisResults = data.cat1.searchList.totalResultCount
 			  			document.getElementById("results").innerHTML = "/" + totalResults.toString()
 			  			allResults = mergedData.length
 			  			document.getElementById("captured").innerHTML = "  Results:" + allResults.toString()
+			  			geo = place
 			  		});
 
 			  		document.getElementById("loader").style.display = "block";

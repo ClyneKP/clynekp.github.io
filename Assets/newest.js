@@ -26,6 +26,26 @@ $(function() {
 
 	}).trigger('click');
 
+	$('.settings .far').bind('click', function() {
+
+	  	document.getElementById('infowindow').style.zIndex ='1002';
+        document.getElementById('closewindow').style.zIndex ='1002';
+        document.getElementById('isolate').style.zIndex ='1001';
+        document.getElementById('isolate').style.backgroundColor ='#000';
+        document.getElementById('isolate').style.opacity ='.75';
+
+	});
+
+$('#closewindow').bind('click', function() {
+
+	  	document.getElementById('infowindow').style.zIndex ='-4';
+                document.getElementById('closewindow').style.zIndex ='-4';
+                document.getElementById('isolate').style.zIndex ='-1';
+                document.getElementById('isolate').style.backgroundColor ='#ffffff';
+        		document.getElementById('isolate').style.opacity ='1';
+
+	});
+
 	$('.settings .pause').bind('click', function() {
 
 		    var title = $(this).attr('title'),

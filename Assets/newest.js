@@ -233,6 +233,7 @@ chrome.runtime.onConnect.addListener(async function(port) {
 			  					results = data.cat1.searchResults.listResults
 					  			for (t=0; t < results.length; t++)
 								  {
+								  	console.log(results[t])
 								    mergedData.push(results[t])
 								  }
 

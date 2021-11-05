@@ -137,7 +137,6 @@ function getCVS(x,y){
       response.data.atgResponse.forEach(function(s){
 
 
-    inventory = s.Qty
     name = "CVS"
     address = s.storeAddress + ", " + s.City +", " + s.State + " " + s.Zipcode
 
@@ -145,12 +144,14 @@ function getCVS(x,y){
 
       coords = c.features[0].center
 
+      console.log(c)
+
       store = {
       "type": "Feature",
       "properties": {
         "name": name,
-        "address": address,
-        "count" : inventory
+        "address": c.features[0].place_name,
+        "count" : s.Qty
       },
       "geometry": {
         "type": "Point",

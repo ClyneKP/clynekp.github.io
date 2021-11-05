@@ -83,8 +83,6 @@ mapboxgl.accessToken = 'pk.eyJ1Ijoia3BjbHluZSIsImEiOiJjanN3MzlpY2EwZGpjM3lsaGNhb
         , pitch: 0
         , bearing: 0
         , maxPitch: 85
-        , maxZoom: 12
-        , minZoom: 5
       });
 
 
@@ -92,6 +90,8 @@ geocoder = new MapboxGeocoder({
 accessToken: mapboxgl.accessToken,
 mapboxgl: mapboxgl
 })
+
+map.addControl(new mapboxgl.NavigationControl());
 
 function getWalgreens(x,y){
 

@@ -1,0 +1,202 @@
+<html>
+<head>
+ <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.5.1/mapbox-gl-geocoder.min.js"></script>
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.5.1/mapbox-gl-geocoder.css" type="text/css" />
+
+ <style>
+
+ #map{
+ width:100%;
+ height: 100%;
+ position: absolute
+ }
+
+ body{
+ 	margin: 0 !important;
+
+ }
+
+ .marker {width:0; height:0;}
+
+.marker  span {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  box-sizing:border-box;
+  width: 30px;
+  height: 30px;
+  color:#fff;
+  background: #693;
+  border:solid 2px;
+  border-radius: 0 70% 70%;
+  box-shadow:0 0 2px #000;
+  cursor: pointer;
+  transform-origin:0 0;
+  transform: rotateZ(-135deg);
+}
+
+.marker b {transform: rotateZ(135deg)}
+
+.mapboxgl-popup {
+  max-width: 200px;
+}
+
+.mapboxgl-popup-content {
+  text-align: center;
+  font-family: 'Open Sans', sans-serif;
+}
+ </style>
+
+</head>
+<body>
+<div id='map'>
+</div>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1Ijoia3BjbHluZSIsImEiOiJjanN3MzlpY2EwZGpjM3lsaGNhb3NqY3JmIn0._sGjIhmL5Xt08WIMWRsSsg';
+      var map = new mapboxgl.Map({
+        container: 'map'
+        , style: 'mapbox://styles/mapbox/light-v10'
+        , center: [-73.978776,40.688397]
+        , zoom: 12
+        , pitch: 0
+        , bearing: 0
+        , maxPitch: 85
+        , maxZoom: 12
+        , minZoom: 5
+      });
+
+
+geocoder = new MapboxGeocoder({
+accessToken: mapboxgl.accessToken,
+mapboxgl: mapboxgl
+})
+
+function getWalgreens(x,y){
+
+	geojson = {
+	  "type": "FeatureCollection",
+	  "features": [],
+	  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+	}
+
+	fetch('https://www.walgreens.com/locator/v1/search/stores/inventory?requestor=pdpui', {
+      method: 'POST',
+      body: JSON.stringify({
+        requestType: 'filterInStockStores',
+        inStockOnly: 'true',
+        skuId: 400635630,
+        p: 1,
+        s: 50,
+        r: 25,
+        plnId: 40000917187,
+        q: 11217,
+        lat: x,
+        lng: y
+      }),
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8',
+      },
+    }).then(response => response.json()).then(function(data){
+
+
+    data.results.forEach(function(d){
+
+    inventory = d.inventory.inventoryCount
+    latitude = d.latitude
+    longitude = d.longitude
+    name = d.store.brand
+    address = d.store.address.street + ", " + d.store.address.city +", " + d.store.address.state + " " + d.store.address.zip
+
+
+    store = {
+      "type": "Feature",
+      "properties": {
+        "name": name,
+        "address": address,
+        "count" : inventory
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          +longitude,
+          +latitude
+        ]
+      }
+    }
+
+    geojson.features.push(store)
+
+    })
+
+    console.log(geojson)
+window.mapMarkers = []
+
+    geojson.features.forEach(function(marker, i) {
+
+	  // create a HTML element for each feature
+	  var el = document.createElement('div');
+	  el.className = 'marker';
+	  el.innerHTML = '<span><b>' + marker.properties.count + '</b></span>'
+
+	  // make a marker for each feature and add it to the map
+	  marker = new mapboxgl.Marker(el)
+	    .setLngLat(marker.geometry.coordinates)
+	    .setPopup(new mapboxgl.Popup({
+	        offset: 25
+	      }) // add popups
+	      .setHTML('<h3>' + marker.properties.name + '</h3><p>' + marker.properties.address + '</p>'))
+	    .addTo(map);
+
+	   mapMarkers.push(marker)
+	});
+
+    });
+
+      
+
+}
+
+
+
+map.on('load', function () {
+
+
+map.addControl(geocoder,'top-left');
+
+
+geocoder.on('result', function(ev) {
+	console.log("CENTER:",ev.result.center);
+
+	if(window.mapMarkers != undefined){
+	window.mapMarkers.forEach(d => d.remove())
+}
+
+	getWalgreens(ev.result.center[1],ev.result.center[0])
+
+});
+
+
+
+
+
+
+
+
+
+    })
+
+
+
+
+      
+
+
+
+
+
+    
+</script>
+</body>
+</html>

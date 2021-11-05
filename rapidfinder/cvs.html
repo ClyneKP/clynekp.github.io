@@ -1,0 +1,111 @@
+<html>
+<head>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+
+config = {
+  "locations": {
+    "CA": [
+      "brampton",
+      "whitby", 
+      "newmarket", 
+      "barrie", 
+      "toronto",
+      "mississauga",
+      "waterloo",
+      "kitchener",
+      "pickering",
+      "aurora"
+    ],
+    "US": [
+      "new york",
+      "san francisco"
+    ]
+  },
+  "headers": [
+    "Source",
+    "Product ID",
+    "Store ID",
+    "Store Name",
+    "Intersection / City",
+    "Phone",
+    "Price",
+    "Quantity",
+    "Status"
+  ],
+  "walmart": {
+    "productId": ["62891574558","7385202778"],
+    "storeLocatorAPI": "https://www.walmart.ca/en/stores-near-me/api/searchStores?singleLineAddr=",
+    "storeStockAPI": "https://www.walmart.ca/api/product-page/find-in-store?&lang=en&upc=",   
+    "attributes": [
+      "productId",
+      "id",       
+      "displayName", 
+      "intersection", 
+      "",
+      "sellPrice", 
+      "availableToSellQty", 
+      "availabilityStatus"
+    ]
+  },
+  "staples": {
+    "productId": ["707506","45717"],
+    "storeLocatorAPI": "https://stores.boldapps.net/front-end/get_surrounding_stores.php?shop=staples-canada.myshopify.com&latitude=43.8903747&longitude=-79.2359517&max_distance=1000&limit=100&calc_distance=1",
+    "storeStockAPI": "https://staplescms.staples.ca/api/pickupinstore",
+    "attributes": [
+      "productId",
+      "storeNumber",
+      "addressLine",
+      "city",
+      "phoneNumber",
+      "",
+      "availableqty",
+      ""
+    ]
+  },
+  "cvs": {
+    "productId": "310410",
+    "storeStockAPI": "https://www.cvs.com/RETAGPV1/Inventory/V1/getStoreDetailsAndInventory",
+    "attributes": [
+      "storeId",
+      "storeAddress",
+      "City",
+      "Phonenumber",
+      "",
+      "Qty",
+      "bohStatus"
+    ]
+  },
+  "walgreens": {
+    "productId": "sku6231526",
+    "storeStockAPI": "https://www.walgreens.com/locator/v1/search/stores/inventory"
+  }
+
+}
+
+
+ async function scrapeCVS() {
+  let data = {
+    "getStoreDetailsAndInventoryRequest":{
+      "header":{"apiKey":"a2ff75c6-2da7-4299-929d-d670d827ab4a","apiSecret":"a8df2d6e-b11c-4b73-8bd3-71afc2515dae","appName":"CVS_WEB","channelName":"WEB","deviceType":"DESKTOP","version":"1.0","deviceToken":"device12345","lineOfBusiness":"RETAIL","responseFormat":"JSON","securityType":"apiKey","source":"CVS_WEB","type":"rdp"},
+      "productId": config.cvs.productId,
+      "geolatitude":"",
+      "geolongitude":""
+    }
+  };
+
+  for(let i=0; i < config.locations.US.length; i++) {
+    data.addressLine = config.locations.US[i];
+    let response = await axios.post(config.cvs.storeStockAPI, JSON.stringify(data));
+    // console.log(response.data);
+
+    if(response && response.data && response.data.atgResponse) {
+      response.data.atgResponse.forEach(s => console.log(s));
+    }
+  }
+ }
+</script>
+</body>
+</html>

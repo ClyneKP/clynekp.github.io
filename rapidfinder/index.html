@@ -30,7 +30,9 @@
  height: 100%;
  position: absolute
  }
-
+.mapboxgl-ctrl-geocoder {
+    width: 300px!important;
+}
 .mapboxgl-ctrl-icon{
         position: static !important;
       }
@@ -48,6 +50,23 @@
  	margin: 0 !important;
 
  }
+ 
+ table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  font-size:small
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
 
  .marker {width:0; height:0;}
 
@@ -144,7 +163,6 @@ function getCVS(x,y){
 
       coords = c.features[0].center
 
-      console.log(c)
 
       store = {
       "type": "Feature",
@@ -163,6 +181,7 @@ function getCVS(x,y){
     }
 
     geojson.features.push(store)
+
 
     })
 
@@ -203,20 +222,26 @@ function getWalgreens(x,y){
 	  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 	}
 
+	skus = [{name:"BinaxNow", sku:"400635630", plnId:"40000917187"},{name:"On/Go", sku:"400642185",plnId:"40000840982"},{name:"Quickvue", sku:"400637449",plnId:"40000999566"}]
+	
+	skus.forEach(function(sku){
+	
+
 	fetch('https://www.walgreens.com/locator/v1/search/stores/inventory?requestor=pdpui', {
       method: 'POST',
       body: JSON.stringify({
-        requestType: 'filterInStockStores',
-        inStockOnly: 'true',
-        skuId: 400635630,
-        p: 1,
-        s: 50,
-        r: 25,
-        plnId: 40000917187,
-        q: 11217,
-        lat: x,
-        lng: y
-      }),
+		"requestType":"filterInStockStores",
+			"inStockOnly":"true",
+			"skuId":sku.sku,
+			"p":"1",
+			"s":"50",
+			"r":"25",
+			"plnId":sku.plnId,
+			"sameday":"true",
+			"excludeEmergencyClosed":"true",
+			"lat":x,
+			"lng":y,
+			"q":"10001"}),
       headers: {
         'Content-type': 'application/json; charset=UTF-8',
       },
@@ -225,13 +250,16 @@ function getWalgreens(x,y){
 
     data.results.forEach(function(d){
 
-    inventory = d.inventory.inventoryCount
+
+	inventory = d.inventory.inventoryCount
     latitude = d.latitude
     longitude = d.longitude
     name = d.store.brand
     address = d.store.address.street + ", " + d.store.address.city +", " + d.store.address.state + " " + d.store.address.zip
 
+	result = window.geojson.features.filter(d => d.properties.address == address)
 
+	if(result.length == 0){
     store = {
       "type": "Feature",
       "properties": {
@@ -247,15 +275,52 @@ function getWalgreens(x,y){
         ]
       }
     }
+	
+	store.properties[String(sku.name)] = d.inventory.inventoryCount
 
     geojson.features.push(store)
+	
+	 geojson.features.forEach(function(marker, i) {
 
-    })
+	  // create a HTML element for each feature
+	  var el = document.createElement('div');
+	  el.className = 'marker';
+	  el.innerHTML = '<span><b>' + marker.properties.count + '</b></span>'
 
-    console.log(geojson)
+	  // make a marker for each feature and add it to the map
+	  
+	  html = '<h3>' + marker.properties.name + '</h3><p>' + marker.properties.address + '</p>'
+	 
+	  
+	  marker = new mapboxgl.Marker(el)
+	    .setLngLat(marker.geometry.coordinates)
+	    .setPopup(new mapboxgl.Popup({
+	        offset: 25
+	      }) // add popups
+	      .setHTML(html))
+	    .addTo(map);
 
-
-    geojson.features.forEach(function(marker, i) {
+	   mapMarkers.push(marker)
+	});
+	}else{
+	result[0].properties[String(sku.name)] = d.inventory.inventoryCount
+	result[0].properties.count = result[0].properties.count + d.inventory.inventoryCount
+	
+	window.mapMarkers.forEach(d => d.remove())
+	
+	geojson.features.forEach(function(marker, i) {
+	
+		html = '<h3>' + marker.properties.name + '</h3><p>' + marker.properties.address + '</p>'
+	  
+	  item = ""
+	  skus.forEach(function(r){
+	  if (marker.properties[r.name] !== undefined){
+	  item = item + "<tr><td>" + r.name + "</td><td>" + String(marker.properties[r.name]) +"</td></tr>"
+	  }
+	  })
+	  
+	  	  
+	  table = "<br><table><tr><th>Brand</th><th>Inventory</th></tr>" + item + "</table>"
 
 	  // create a HTML element for each feature
 	  var el = document.createElement('div');
@@ -268,13 +333,22 @@ function getWalgreens(x,y){
 	    .setPopup(new mapboxgl.Popup({
 	        offset: 25
 	      }) // add popups
-	      .setHTML('<h3>' + marker.properties.name + '</h3><p>' + marker.properties.address + '</p>'))
+	      .setHTML(html + table))
 	    .addTo(map);
 
 	   mapMarkers.push(marker)
 	});
+	
+	}
+
+    })
+
+
+	
 
     });
+	
+	})
 
       
 
@@ -289,7 +363,6 @@ map.addControl(geocoder,'top-left');
 
 
 geocoder.on('result', function(ev) {
-	console.log("CENTER:",ev.result.center);
 
 	if(window.mapMarkers != undefined){
 	window.mapMarkers.forEach(d => d.remove())

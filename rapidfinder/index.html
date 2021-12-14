@@ -305,6 +305,8 @@ function getWalgreens(x,y){
     
         
     table = "<br><table><tr><th>Brand</th><th>Inventory</th></tr>" + item + "</table>"
+
+    notice = "<br><font size='x-small'>*Inventory count is approximate: Items in the process of being stocked, restocked or returned may result in minor discrepancies.</font>"
 	 
 	  
 	  marker = new mapboxgl.Marker(el)
@@ -312,7 +314,7 @@ function getWalgreens(x,y){
 	    .setPopup(new mapboxgl.Popup({
 	        offset: 25
 	      }) // add popups
-	      .setHTML(html + table))
+	      .setHTML(html + table + notice))
 	    .addTo(map);
 
 	   mapMarkers.push(marker)
@@ -337,6 +339,8 @@ function getWalgreens(x,y){
 	  	  
 	  table = "<br><table><tr><th>Brand</th><th>Inventory</th></tr>" + item + "</table>"
 
+    notice = "<br><font size='x-small'>Inventory count is approximate: Items in the process of being stocked, restocked or returned may result in minor discrepancies.</font>"
+
 	  // create a HTML element for each feature
 	  var el = document.createElement('div');
 	  el.className = 'marker';
@@ -348,7 +352,7 @@ function getWalgreens(x,y){
 	    .setPopup(new mapboxgl.Popup({
 	        offset: 25
 	      }) // add popups
-	      .setHTML(html + table))
+	      .setHTML(html + table + notice))
 	    .addTo(map);
 
 	   mapMarkers.push(marker)

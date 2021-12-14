@@ -120,6 +120,7 @@ mapboxgl.accessToken = 'pk.eyJ1Ijoia3BjbHluZSIsImEiOiJjanN3MzlpY2EwZGpjM3lsaGNhb
         , pitch: 0
         , bearing: 0
         , maxPitch: 85
+        , maxZoom: 14
       });
 
 
@@ -373,7 +374,7 @@ geocoder.on('result', function(ev) {
 
 });
 
-
+geocoder.query('99 hudson street, new york, ny 10013')
 
 
 

@@ -120,7 +120,7 @@ mapboxgl.accessToken = 'pk.eyJ1Ijoia3BjbHluZSIsImEiOiJjanN3MzlpY2EwZGpjM3lsaGNhb
         , pitch: 0
         , bearing: 0
         , maxPitch: 85
-        , maxZoom: 14
+        , maxZoom: 13
       });
 
 
@@ -260,6 +260,8 @@ function getWalgreens(x,y){
 
 	result = window.geojson.features.filter(d => d.properties.address == address)
 
+  console.log(result)
+
 	if(result.length == 0){
     store = {
       "type": "Feature",
@@ -291,6 +293,16 @@ function getWalgreens(x,y){
 	  // make a marker for each feature and add it to the map
 	  
 	  html = '<h3>' + marker.properties.name + '</h3><p>' + marker.properties.address + '</p>'
+
+    item = ""
+    skus.forEach(function(r){
+    if (marker.properties[r.name] !== undefined){
+    item = item + "<tr><td>" + r.name + "</td><td>" + String(marker.properties[r.name]) +"</td></tr>"
+    }
+    })
+    
+        
+    table = "<br><table><tr><th>Brand</th><th>Inventory</th></tr>" + item + "</table>"
 	 
 	  
 	  marker = new mapboxgl.Marker(el)
@@ -298,7 +310,7 @@ function getWalgreens(x,y){
 	    .setPopup(new mapboxgl.Popup({
 	        offset: 25
 	      }) // add popups
-	      .setHTML(html))
+	      .setHTML(html + table))
 	    .addTo(map);
 
 	   mapMarkers.push(marker)
@@ -370,7 +382,7 @@ geocoder.on('result', function(ev) {
 }
 
 	getWalgreens(ev.result.center[1],ev.result.center[0])
-  getCVS(String(ev.result.center[1]),String(ev.result.center[0]))
+  //getCVS(String(ev.result.center[1]),String(ev.result.center[0]))
 
 });
 

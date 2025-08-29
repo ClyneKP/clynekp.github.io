@@ -1729,7 +1729,7 @@ function highlightInvisibleSegments() {
 // Station Layer
 //"https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/NYC_Subway_Diagram_Updated_Layers/FeatureServer/1/query?where=1%3D1&outFields=*&f=json"
 fetch(
-  "stations.geojson"
+  "stations_updated.geojson"
 )
   .then((response) => response.json())
   .then((data) => {

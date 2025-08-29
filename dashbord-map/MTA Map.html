@@ -859,13 +859,13 @@ var map = new ol.Map({
 });
 
 let lastZoom = map.getView().getZoom();
-let minimizeBackground = false; // Set minimized style as default
+let minimizeBackground = true; // Set minimized style as default
 
 // Update the toggle to reflect the default state
 const minimizeBackgroundToggle = document.getElementById(
   "toggleMinimizeBackground"
 );
-minimizeBackgroundToggle.checked = true; // Default to unchecked for non-minimized style
+minimizeBackgroundToggle.checked = false; // Default to unchecked for non-minimized style
 
 minimizeBackgroundToggle.addEventListener("change", function () {
   minimizeBackground = !this.checked; // Reverse the logic
@@ -909,8 +909,8 @@ map.getView().on("change:resolution", function () {
   }
 
   // ✅ Check before updating lastZoom
-  if ((lastZoom < 12 && newZoom >= 12) || (lastZoom >= 16 && newZoom < 12)) {
-    minimizeBackground = newZoom < 12;
+  if ((lastZoom < 16 && newZoom >= 16) || (lastZoom >= 16 && newZoom < 16)) {
+    minimizeBackground = newZoom < 16;
 
     const minimizeBackgroundToggle = document.getElementById(
       "toggleMinimizeBackground"
@@ -1232,16 +1232,16 @@ var subwayLayer = new ol.layer.Vector({
 
     if (zoom < 14.5) {
       outerWidth = 3.5;
-      innerWidth = 3;
+      innerWidth = 2;
     } else if (zoom < 15.3) {
       outerWidth = interpolate(zoom, 14.5, 3.5, 15.3, 6);
-      innerWidth = interpolate(zoom, 14.5, 3, 15.3, 5);
+      innerWidth = interpolate(zoom, 14.5, 2, 15.3, 4);
     } else if (zoom < 16.3) {
       outerWidth = interpolate(zoom, 15.3, 6, 16.3, 9);
-      innerWidth = interpolate(zoom, 15.3, 5, 16.3, 7);
+      innerWidth = interpolate(zoom, 15.3, 4, 16.3, 6);
     } else if (zoom < 17.3) {
       outerWidth = interpolate(zoom, 16.3, 9, 17.3, 17);
-      innerWidth = interpolate(zoom, 16.3, 7, 17.3, 15);
+      innerWidth = interpolate(zoom, 16.3, 6, 17.3, 15);
     } else {
       outerWidth = 17;
       innerWidth = 15;
@@ -1251,14 +1251,14 @@ var subwayLayer = new ol.layer.Vector({
       // Outer color stroke
       new ol.style.Style({
         stroke: new ol.style.Stroke({
-          color: hexToRgba(lineColor, .9),
+          color: hexToRgba(lineColor, 0.2),
           width: outerWidth,
         }),
       }),
       // Inner white stroke
       new ol.style.Style({
         stroke: new ol.style.Stroke({
-          color: "rgba(255, 255, 255, 1)",
+          color: "rgba(255, 255, 255, 0.9)",
           width: innerWidth,
         }),
       }),
@@ -1295,6 +1295,204 @@ fetch(
 
       subwaySource.addFeatures(features);
       let extent = subwaySource.getExtent();
+
+      if (!ol.extent.isEmpty(extent)) {
+        map.getView().fit(extent, { padding: [50, 50, 50, 50] });
+      }
+    }
+  })
+  .catch((error) => console.error("❌ Error fetching EsriJSON:", error));
+
+//LIRR
+
+var lirrSource = new ol.source.Vector();
+var lirrLayer = new ol.layer.Vector({
+  source: lirrSource,
+
+
+  style: function (feature, resolution) {
+    const zoom = map.getView().getZoomForResolution(resolution);
+    const lineColor = feature.get("fill_color") || "#000000"; // Fallback to black
+
+    if (minimizeBackground) {
+      const subwayLineOpacity = zoom < 16 ? 0.2 : .2;
+      return new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: hexToRgba(lineColor, subwayLineOpacity),
+          width: .25,
+        }),
+      });
+    }
+
+    const interpolate = (z, z0, w0, z1, w1) =>
+  w0 + ((z - z0) / (z1 - z0)) * (w1 - w0);
+
+      let outerWidth, innerWidth;
+
+    if (zoom < 14.5) {
+      outerWidth = 3.5;
+      innerWidth = 2;
+    } else if (zoom < 15.3) {
+      outerWidth = interpolate(zoom, 14.5, 3.5, 15.3, 6);
+      innerWidth = interpolate(zoom, 14.5, 2, 15.3, 4);
+    } else if (zoom < 16.3) {
+      outerWidth = interpolate(zoom, 15.3, 6, 16.3, 9);
+      innerWidth = interpolate(zoom, 15.3, 4, 16.3, 6);
+    } else if (zoom < 17.3) {
+      outerWidth = interpolate(zoom, 16.3, 9, 17.3, 17);
+      innerWidth = interpolate(zoom, 16.3, 6, 17.3, 15);
+    } else {
+      outerWidth = 17;
+      innerWidth = 15;
+    }
+
+    return [
+      // Outer color stroke
+      new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: hexToRgba(lineColor, 0.2),
+          width: outerWidth,
+        }),
+      }),
+      // Inner white stroke
+      new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: "rgba(255, 255, 255, 0.9)",
+          width: innerWidth,
+        }),
+      }),
+    ];
+  },
+  properties: {
+    title: "LIRR Layer",
+    clickable: false,
+  },
+  zIndex: 2,
+});
+map.addLayer(lirrLayer);
+
+const lirrLoaded = new Promise((resolve) => {
+  lirrSource.once("change", function () {
+    if (lirrSource.getState() === "ready") {
+      resolve();
+    }
+  });
+});
+
+// Fetch LIRR Data and Reproject Features
+fetch(
+  "https://services.arcgis.com/04HiymDgLlsbhaV4/arcgis/rest/services/NYC_Subway_Diagram_Updated_Layers/FeatureServer/3/query?where=1%3D1&outFields=*&f=json"
+)
+  .then((response) => response.json())
+  .then((data) => {
+    if (data.features) {
+      var esriFormat = new ol.format.EsriJSON();
+      var features = esriFormat.readFeatures(data, {
+        dataProjection: "EPSG:2263",
+        featureProjection: "EPSG:3857",
+      });
+
+      lirrSource.addFeatures(features);
+      let extent = lirrSource.getExtent();
+
+      if (!ol.extent.isEmpty(extent)) {
+        map.getView().fit(extent, { padding: [50, 50, 50, 50] });
+      }
+    }
+  })
+  .catch((error) => console.error("❌ Error fetching EsriJSON:", error));
+
+//MNR
+
+var mnrSource = new ol.source.Vector();
+var mnrLayer = new ol.layer.Vector({
+  source: mnrSource,
+
+
+  style: function (feature, resolution) {
+    const zoom = map.getView().getZoomForResolution(resolution);
+    const lineColor = feature.get("fill_color") || "#000000"; // Fallback to black
+
+    if (minimizeBackground) {
+      const subwayLineOpacity = zoom < 16 ? 0.2 : .2;
+      return new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: hexToRgba(lineColor, subwayLineOpacity),
+          width: .25,
+        }),
+      });
+    }
+
+    const interpolate = (z, z0, w0, z1, w1) =>
+  w0 + ((z - z0) / (z1 - z0)) * (w1 - w0);
+
+      let outerWidth, innerWidth;
+
+    if (zoom < 14.5) {
+      outerWidth = 3.5;
+      innerWidth = 2;
+    } else if (zoom < 15.3) {
+      outerWidth = interpolate(zoom, 14.5, 3.5, 15.3, 6);
+      innerWidth = interpolate(zoom, 14.5, 2, 15.3, 4);
+    } else if (zoom < 16.3) {
+      outerWidth = interpolate(zoom, 15.3, 6, 16.3, 9);
+      innerWidth = interpolate(zoom, 15.3, 4, 16.3, 6);
+    } else if (zoom < 17.3) {
+      outerWidth = interpolate(zoom, 16.3, 9, 17.3, 17);
+      innerWidth = interpolate(zoom, 16.3, 6, 17.3, 15);
+    } else {
+      outerWidth = 17;
+      innerWidth = 15;
+    }
+
+    return [
+      // Outer color stroke
+      new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: hexToRgba(lineColor, 0.2),
+          width: outerWidth,
+        }),
+      }),
+      // Inner white stroke
+      new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: "rgba(255, 255, 255, 0.9)",
+          width: innerWidth,
+        }),
+      }),
+    ];
+  },
+  properties: {
+    title: "MNR Layer",
+    clickable: false,
+  },
+  zIndex: 2,
+});
+map.addLayer(mnrLayer);
+
+const mnrLoaded = new Promise((resolve) => {
+  mnrSource.once("change", function () {
+    if (mnrSource.getState() === "ready") {
+      resolve();
+    }
+  });
+});
+
+// Fetch MNR Data and Reproject Features
+fetch(
+  "https://services.arcgis.com/04HiymDgLlsbhaV4/arcgis/rest/services/NYC_Subway_Diagram_Updated_Layers/FeatureServer/5/query?where=1%3D1&outFields=*&f=json"
+)
+  .then((response) => response.json())
+  .then((data) => {
+    if (data.features) {
+      var esriFormat = new ol.format.EsriJSON();
+      var features = esriFormat.readFeatures(data, {
+        dataProjection: "EPSG:2263",
+        featureProjection: "EPSG:3857",
+      });
+
+      mnrSource.addFeatures(features);
+      let extent = mnrSource.getExtent();
 
       if (!ol.extent.isEmpty(extent)) {
         map.getView().fit(extent, { padding: [50, 50, 50, 50] });
@@ -1356,27 +1554,16 @@ function stationStyleFunction(feature, resolution) {
     ? 5.5
     : 9;
 
-  const fontsize_multiplier = 
-    zoom < 15.5
-      ? 1.2
-      : zoom < 16
-      ? 1.5
-      : zoom < 17
-      ? 1.75
-      : zoom < 18
-      ? 2
-      : 2;
-
-    const label_multiplier = 
+  const label_multiplier = 
     zoom < 15.3
-      ? 10
+      ? 7
       : zoom < 16
-      ? 10
+      ? 7
       : zoom < 17
-      ? 10
+      ? 7
       : zoom < 18
-      ? 10
-      : 10;
+      ? 7
+      : 7;
 
   const styles = [];
 
@@ -1411,15 +1598,14 @@ function stationStyleFunction(feature, resolution) {
     styles.push(
       new ol.style.Style({
         text: new ol.style.Text({
-          font: `bold ${8 * fontsize_multiplier}px Calibri,sans-serif`,
+          font: "bold 8px Calibri,sans-serif",
           text: labelText,
           offsetX: labelOffsetX * label_multiplier,
           offsetY: labelOffsetY * label_multiplier,
           textBaseline: baseline,
           textAlign: align,
-          declutter: true,
           fill: new ol.style.Fill({
-            color: project_fl == 1 ? "rgba(0, 0, 0, 1)" : "rgba(0, 0, 0, .2)"
+            color: "#000",
           }),
           // Background with better contrast
           backgroundFill: new ol.style.Fill({
@@ -1438,6 +1624,76 @@ function stationStyleFunction(feature, resolution) {
 
   return styles;
 }
+// --- Feature Edit Controls ---
+// Create a simple popup form for editing feature attributes
+const editForm = document.createElement('div');
+editForm.id = 'feature-edit-form';
+editForm.style.position = 'absolute';
+editForm.style.display = 'none';
+editForm.style.background = '#fff';
+editForm.style.border = '1px solid #888';
+editForm.style.padding = '12px';
+editForm.style.zIndex = 1000;
+editForm.innerHTML = `
+  <label>Align:
+    <select id="edit-align">
+      <option value="left">Left</option>
+      <option value="center">Center</option>
+      <option value="right">Right</option>
+    </select>
+  </label><br>
+  <label>Baseline:
+    <select id="edit-baseline">
+      <option value="top">Top</option>
+      <option value="middle">Middle</option>
+      <option value="bottom">Bottom</option>
+    </select>
+  </label><br>
+  <label>Offset X: <input type="number" id="edit-offsetX"></label><br>
+  <label>Offset Y: <input type="number" id="edit-offsetY"></label><br>
+  <label>Wrap: <input type="number" id="edit-wrap"></label><br>
+  <button id="edit-save">Save</button>
+  <button id="edit-cancel">Cancel</button>
+`;
+document.body.appendChild(editForm);
+
+let editingFeature = null;
+
+map.on('singleclick', function(evt) {
+  map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+    if (layer === stationLayer) {
+      editingFeature = feature;
+      // Set form values from feature
+      document.getElementById('edit-align').value = feature.get('align') || 'center';
+      document.getElementById('edit-baseline').value = feature.get('baseline') || 'middle';
+      document.getElementById('edit-offsetX').value = feature.get('x_offset') || 0;
+      document.getElementById('edit-offsetY').value = feature.get('y_offset') || 0;
+      document.getElementById('edit-wrap').value = feature.get('wrap') || 0;
+      // Position form near mouse
+      editForm.style.left = evt.pixel[0] + 20 + 'px';
+      editForm.style.top = evt.pixel[1] + 20 + 'px';
+      editForm.style.display = 'block';
+    }
+  });
+});
+
+document.getElementById('edit-save').onclick = function() {
+  if (editingFeature) {
+    editingFeature.set('align', document.getElementById('edit-align').value);
+    editingFeature.set('baseline', document.getElementById('edit-baseline').value);
+    editingFeature.set('x_offset', Number(document.getElementById('edit-offsetX').value));
+    editingFeature.set('y_offset', Number(document.getElementById('edit-offsetY').value));
+    editingFeature.set('wrap', Number(document.getElementById('edit-wrap').value));
+    stationLayer.changed();
+    editForm.style.display = 'none';
+    editingFeature = null;
+  }
+};
+
+document.getElementById('edit-cancel').onclick = function() {
+  editForm.style.display = 'none';
+  editingFeature = null;
+};
 
 // Ensure station layer is using the style function
 stationLayer.setStyle(stationStyleFunction);
@@ -1473,7 +1729,7 @@ function highlightInvisibleSegments() {
 // Station Layer
 //"https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/NYC_Subway_Diagram_Updated_Layers/FeatureServer/1/query?where=1%3D1&outFields=*&f=json"
 fetch(
-  "stations_updated.geojson"
+  "stations.geojson"
 )
   .then((response) => response.json())
   .then((data) => {
